@@ -5,11 +5,13 @@ import org.neo4j.graphdb.factory.GraphDatabaseBuilder;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 
 import java.io.*;
+import java.util.Arrays;
+import java.util.Iterator;
 
 public class Neo4Demo {
 
 
-    private static final File DATABASE_DIRECTORY = new File("/var/lib/neo4j/data/databases/javatest.db");
+    private static final File DATABASE_DIRECTORY = new File("/var/lib/neo4j/data/databases/administrative-enheter.db");
     // Predefined queries.
     private static final String DETACH_DELETE = "MATCH (n) DETACH DELETE n";
 
@@ -43,7 +45,7 @@ public class Neo4Demo {
         GraphDatabaseFactory dbFactory = new GraphDatabaseFactory();
         GraphDatabaseBuilder builder = dbFactory.newEmbeddedDatabaseBuilder(DATABASE_DIRECTORY);
         GraphDatabaseService graphdb = builder.newGraphDatabase();
-        Result result;
+        registerShutdownHook(graphdb);
 
         //TODO: Fix neo4j process server failing to stop with systemctl stop neo4j.... -_-
 
@@ -52,42 +54,47 @@ public class Neo4Demo {
             graphdb.execute(DETACH_DELETE);
 
             Node telemark = graphdb.createNode(NodeType.Fylke);
-            telemark.setProperty("Navn", "Telemark");
-            telemark.setProperty("Kode", "NO-08");
+            telemark.setProperty("navn", "Telemark");
+            telemark.setProperty("nr", "NO-08");
 
             for (int i = 0; i < kommuneFeatures.length(); i++) {
                 JSONObject kommune = kommuneFeatures.getJSONObject(i);
                 JSONObject kommuneProperties = kommune.getJSONObject("properties");
 
                 // Lag kommunennode
-                String kommuneNavn = kommuneProperties.getJSONArray("navn").getJSONObject(0).getString("navn");
-                String kommuneNr = kommuneProperties.getString("kommunenummer");
+                String komNavn = kommuneProperties.getJSONArray("navn").getJSONObject(0).getString("navn");
+                String komNr = kommuneProperties.getString("kommunenummer");
 
-                Node kommuneNode = graphdb.createNode(NodeType.Kommune);
-                kommuneNode.setProperty("KommuneNavn", kommuneNavn);
-                kommuneNode.setProperty("Kommunenr", kommuneNavn);
+                Node komNode = graphdb.createNode(NodeType.Kommune);
+                komNode.setProperty("navn", komNavn);
+                komNode.setProperty("nr", komNavn);
 
-                telemark.createRelationshipTo(kommuneNode, RelationType.HAR_KOMMUNE);
-
+                telemark.createRelationshipTo(komNode, RelationType.HAR_KOMMUNE);
 
                 // Behandle koordinater og lenk
                 JSONArray koordinater = kommune.getJSONObject("geometry").getJSONArray("coordinates").getJSONArray(0);
-                JSONArray punkt = null;
                 for (int j = 0; j < koordinater.length(); j++) {
-                    punkt = koordinater.getJSONArray(i);
+                    JSONArray punkt = koordinater.getJSONArray(j);
                     Node koordinatSett = graphdb.createNode(NodeType.Koordinat);
-                    koordinatSett.setProperty("lat", punkt.getInt(0));
-                    koordinatSett.setProperty("lon", punkt.getInt(1));
-                    kommuneNode.createRelationshipTo(koordinatSett, RelationType.KOMMUNE_GRENSE);
+                    koordinatSett.setProperty("lat", punkt.getDouble(0));
+                    koordinatSett.setProperty("lon", punkt.getDouble(1));
+                    komNode.createRelationshipTo(koordinatSett, RelationType.KOMMUNE_GRENSE);
                 }
 
             }
             tx.success();
+//            Result result = graphdb.execute("match (n:Koordinat) return DISTINCT n");
+//            Iterator<Node> itr = result.columnAs("n");
+//
+//            while (itr.hasNext()) {
+//                Node n = itr.next();
+//                System.out.println(n.getProperty("lat") + " : " + n.getProperty("lon"));
+//            }
         }
         graphdb.shutdown();
     }
 
-        //
+    //
 //        try (Transaction tx = graphdb.beginTx()) {
 //
 //            graphdb.execute(DETACH_DELETE);
@@ -137,6 +144,7 @@ public class Neo4Demo {
 
     /**
      * Reads a file with character data.
+     *
      * @return StringBuil
      */
     public static StringBuilder readFile() {
@@ -157,5 +165,17 @@ public class Neo4Demo {
             e.printStackTrace();
         }
         return builder;
+    }
+
+    private static void registerShutdownHook(final GraphDatabaseService graphDb) {
+        // Registers a shutdown hook for the Neo4j instance so that it
+        // shuts down nicely when the VM exits (even if you "Ctrl-C" the
+        // running application).
+        Runtime.getRuntime().addShutdownHook(new Thread() {
+            @Override
+            public void run() {
+                graphDb.shutdown();
+            }
+        });
     }
 }
