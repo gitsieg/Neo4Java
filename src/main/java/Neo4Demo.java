@@ -5,6 +5,7 @@ import org.neo4j.graphdb.factory.GraphDatabaseBuilder;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 
 import java.io.*;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 
@@ -40,14 +41,11 @@ public class Neo4Demo {
                 .getJSONArray("features");
 
 
-//        System.out.println(kommuneFeatures.toString(2));
-
         GraphDatabaseFactory dbFactory = new GraphDatabaseFactory();
         GraphDatabaseBuilder builder = dbFactory.newEmbeddedDatabaseBuilder(DATABASE_DIRECTORY);
         GraphDatabaseService graphdb = builder.newGraphDatabase();
         registerShutdownHook(graphdb);
 
-        //TODO: Fix neo4j process server failing to stop with systemctl stop neo4j.... -_-
 
         // All access to graphdb goes in here
         try (Transaction tx = graphdb.beginTx()) {
@@ -83,64 +81,10 @@ public class Neo4Demo {
 
             }
             tx.success();
-//            Result result = graphdb.execute("match (n:Koordinat) return DISTINCT n");
-//            Iterator<Node> itr = result.columnAs("n");
-//
-//            while (itr.hasNext()) {
-//                Node n = itr.next();
-//                System.out.println(n.getProperty("lat") + " : " + n.getProperty("lon"));
-//            }
+            tx.close();
         }
         graphdb.shutdown();
     }
-
-    //
-//        try (Transaction tx = graphdb.beginTx()) {
-//
-//            graphdb.execute(DETACH_DELETE);
-//
-//            Node bobNode = graphdb.createNode(NodeType.Person);
-//            bobNode.setProperty("PID", 5001);
-//            bobNode.setProperty("Name", "Bob");
-//            bobNode.setProperty("Age", 23);
-//
-//            Node aliceNode = graphdb.createNode(NodeType.Person);
-//            aliceNode.setProperty("PID", 1300);
-//            aliceNode.setProperty("Name", "Alice");
-//
-//            Node eveNode = graphdb.createNode(NodeType.Person);
-//            eveNode.setProperty("Name", "Eve");
-//
-//            Node itNode = graphdb.createNode(NodeType.Course);
-//            itNode.setProperty("PID", 1);
-//            itNode.setProperty("Name", "IT GraphDB");
-//            itNode.setProperty("Location", "Room foo.bar");
-//
-//            Node electronicNode = graphdb.createNode(NodeType.Course);
-//            electronicNode.setProperty("Name", "Electronics");
-//
-//            bobNode.createRelationshipTo(aliceNode, RelationType.Knows);
-//
-//            Relationship bobRelIt = bobNode.createRelationshipTo(itNode, RelationType.BelongsTo);
-//            bobRelIt.setProperty("Function", "Student");
-//
-//            Relationship bobRelElectronics = bobNode.createRelationshipTo(electronicNode, RelationType.BelongsTo);
-//            bobRelElectronics.setProperty("Function", "Supply Teacher");
-//
-//            Relationship aliceRelIt = aliceNode.createRelationshipTo(itNode, RelationType.BelongsTo);
-//            aliceRelIt.setProperty("Function", "Teacher");
-//
-//            tx.success();
-//
-//            result = graphdb.execute("match (n) return n");
-//            Iterator<Node> itr = result.columnAs("n");
-//
-//            while (itr.hasNext())
-//                System.out.println(itr.next().toString());
-//
-//        }
-//        graphdb.shutdown();
-//    }
 
     /**
      * Reads a file with character data.
@@ -177,5 +121,109 @@ public class Neo4Demo {
                 graphDb.shutdown();
             }
         });
+    }
+
+    /**
+     * Sets graph topleveldata
+     * @param grapdb
+     * @return
+     */
+    private ArrayList<Node> setFylker(GraphDatabaseService grapdb) {
+
+        ArrayList<Node> listFylke = new ArrayList<>();
+        Node nodeOstfold = grapdb.createNode(NodeType.Fylke);
+        nodeOstfold.setProperty("fylkenr", "NO-01");
+        nodeOstfold.setProperty("name", "Østfold");
+
+        Node nodeAkershus = grapdb.createNode(NodeType.Fylke);
+        nodeAkershus.setProperty("fylkenr", "NO-02");
+        nodeAkershus.setProperty("name", "Akershus");
+
+        Node nodeOslo = grapdb.createNode(NodeType.Fylke);
+        nodeOslo.setProperty("fylkenr", "NO-03");
+        nodeOslo.setProperty("name", "Oslo");
+
+        Node nodeHedmark = grapdb.createNode(NodeType.Fylke);
+        nodeHedmark.setProperty("fylkenr", "NO-04");
+        nodeHedmark.setProperty("name", "Hedmark");
+
+        Node nodeOppland = grapdb.createNode(NodeType.Fylke);
+        nodeOppland.setProperty("fylkenr", "NO-05");
+        nodeOppland.setProperty("name", " Oppland");
+
+        Node nodeBuskerud = grapdb.createNode(NodeType.Fylke);
+        nodeBuskerud.setProperty("fylkenr", "NO-06");
+        nodeBuskerud.setProperty("name", "Buskerud");
+
+        Node nodeVestfold= grapdb.createNode(NodeType.Fylke);
+        nodeVestfold.setProperty("fylkenr", "NO-07");
+        nodeVestfold.setProperty("name", "Vestfold");
+
+        Node nodeTelemark = grapdb.createNode(NodeType.Fylke);
+        nodeTelemark.setProperty("fylkenr", "NO-08");
+        nodeTelemark.setProperty("name", "Telemark");
+
+        Node nodeAustAgder = grapdb.createNode(NodeType.Fylke);
+        nodeAustAgder.setProperty("fylkenr", "NO-09");
+        nodeAustAgder.setProperty("name", "Aust-Agder");
+
+        Node nodeVestAgder= grapdb.createNode(NodeType.Fylke);
+        nodeVestAgder.setProperty("fylkenr", "NO-10");
+        nodeVestAgder.setProperty("name", "Vest-Agder");
+
+        Node nodeRogaland = grapdb.createNode(NodeType.Fylke);
+        nodeRogaland.setProperty("fylkenr", "NO-11");
+        nodeRogaland.setProperty("name", "Rogaland");
+
+        Node nodeHordaland = grapdb.createNode(NodeType.Fylke);
+        nodeHordaland.setProperty("fylkenr", "NO-12");
+        nodeHordaland.setProperty("name", "Hordaland");
+
+        Node nodeSognOgFjordane = grapdb.createNode(NodeType.Fylke);
+        nodeSognOgFjordane.setProperty("fylkenr", "NO-14");
+        nodeSognOgFjordane.setProperty("name", "Sogn og Fjordane");
+
+        Node nodeMoreOgRomsdal = grapdb.createNode(NodeType.Fylke);
+        nodeMoreOgRomsdal.setProperty("fylkenr", "NO-15");
+        nodeMoreOgRomsdal.setProperty("name", "Møre og Romsdal");
+
+        Node nodeTrondelag = grapdb.createNode(NodeType.Fylke);
+        nodeTrondelag.setProperty("fylkenr", "NO-50");
+        nodeTrondelag.setProperty("name", "Trøndelag");
+
+        Node nodeNordland = grapdb.createNode(NodeType.Fylke);
+        nodeNordland.setProperty("fylkenr", "NO-18");
+        nodeNordland.setProperty("name", "Nordland");
+
+        Node nodeTroms = grapdb.createNode(NodeType.Fylke);
+        nodeTroms.setProperty("fylkenr", "NO-19");
+        nodeTroms.setProperty("name", "Troms");
+
+        Node nodeFinnmark = grapdb.createNode(NodeType.Fylke);
+        nodeFinnmark.setProperty("fylkenr", "NO-20");
+        nodeFinnmark.setProperty("name", "Finnmark");
+
+        listFylke.add(nodeOstfold);
+        listFylke.add(nodeAkershus);
+        listFylke.add(nodeOslo);
+        listFylke.add(nodeHedmark);
+        listFylke.add(nodeOppland);
+        listFylke.add(nodeBuskerud);
+        listFylke.add(nodeVestfold);
+        listFylke.add(nodeTelemark);
+        listFylke.add(nodeAustAgder);
+        listFylke.add(nodeVestAgder);
+        listFylke.add(nodeRogaland);
+        listFylke.add(nodeHordaland);
+        listFylke.add(nodeSognOgFjordane);
+        listFylke.add(nodeMoreOgRomsdal);
+        listFylke.add(nodeTrondelag);
+        listFylke.add(nodeNordland);
+        listFylke.add(nodeTroms);
+        listFylke.add(nodeFinnmark);
+
+        return listFylke;
+
+
     }
 }

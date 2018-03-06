@@ -10,8 +10,8 @@ repositories {
 }
 
 dependencies {
-    compile group: 'org.json', name: 'json', version: '20180130' // Json parsing api
-    compile "org.neo4j:neo4j:3.3.2"     // Neo4j graphdb api
+    implementation group: 'org.json', name: 'json', version: '20180130' // Json parsing api
+    implementation "org.neo4j:neo4j:3.3.2"     // Neo4j graphdb api
     testCompile group: 'junit', name: 'junit', version: '4.12'
 }
 group 'xyz.gitsieg'
