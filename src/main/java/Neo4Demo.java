@@ -24,14 +24,17 @@ public class Neo4Demo {
         Kommune,
         Fylke,
         Land,
-        LineString
+        LineString,
+        FylkeGrense
     }
 
     public enum RelationType implements RelationshipType {
         HAR_KOMMUNE,
         HAR_FYLKE,
-
-
+        HAR_FYLKEGRENSE,
+        HAR_LINESTRING,
+        NESTE_PUNKT,
+        HAR_KOORDINAT
     }
 
 
@@ -89,37 +92,58 @@ public class Neo4Demo {
                 // Hent JSON data
                 JSONObject fylkeJSON = new JSONObject(LibJSON.readJSON(fylkeFil).toString());
 
-                // JSON for fylke grense
+                // JSONarray for fylke grense
                 JSONArray grenseFeatures = fylkeJSON.getJSONObject("administrative_enheter.fylkesgrense")
                                                         .getJSONArray("features");
 
+                // Fylke har node fylkegrense som har relasjoner mot flere LineStrings.
+                Node nodeFylkeGrense = graphdb.createNode(NodeType.FylkeGrense);
+                fylke.createRelationshipTo(nodeFylkeGrense, RelationType.HAR_FYLKEGRENSE);
+
                 for (int i = 0; i < grenseFeatures.length(); i++) {
                     JSONObject lineString = grenseFeatures.getJSONObject(i);
-                    JSONObject lineProperties = lineString.getJSONObject("geometry");
-                    JSONObject lineGeo = lineString.getJSONObject("properties");
+                    JSONArray lineGeoCoords = lineString.getJSONObject("geometry").getJSONArray("coordinates");
+                    JSONObject lineProperties = lineString.getJSONObject("properties");
 
+
+                    // LineString -> koordinater
+                    Node nodeLineString = graphdb.createNode(NodeType.LineString);
+                    nodeFylkeGrense.createRelationshipTo(nodeLineString, RelationType.HAR_LINESTRING);
+
+
+                    ArrayList<Node> koordinatNoder = new ArrayList<>();
+                    for (int j = 0; j < lineGeoCoords.length(); j++) {
+                        JSONArray arrKoordinater = lineGeoCoords.getJSONArray(j);
+                        Node koordinatNode = graphdb.createNode(NodeType.Koordinat);
+                        nodeLineString.createRelationshipTo(koordinatNode, RelationType.HAR_KOORDINAT);
+                        koordinatNode.setProperty("lat", arrKoordinater.getDouble(0));
+                        koordinatNode.setProperty("lon", arrKoordinater.getDouble(1));
+                        koordinatNoder.add(koordinatNode);
+
+                    }
+
+//                     Lenk noder
+                    Iterator<Node> nodeIterator = koordinatNoder.iterator();
+                    Node fNode = nodeIterator.next();
+                    while (nodeIterator.hasNext()) {
+                        Node sNode = nodeIterator.next();
+                        fNode.createRelationshipTo(sNode, RelationType.NESTE_PUNKT);
+                        fNode = sNode;
+                    }
+
+
+//                    // Iterer over properties
+                    Iterator<String> propIterator = lineProperties.keys();
+                    while (propIterator.hasNext()) {
+                        String key = propIterator.next();
+                        String value = lineProperties.get(key).toString();
+                        nodeLineString.setProperty(key, value);
+                    }
+
+                    koordinatNoder.clear();
 
                 }
-
-
-                
             }
-
-
-
-
-
-
-
-
-
-//
-//            File[] fylkeFiles = res.listFiles();
-//            for (File file : fylkeFiles) {
-//                System.out.println(file.getName());
-//            }
-
-
 
             tx.success();
             tx.close();
