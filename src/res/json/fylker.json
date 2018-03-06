@@ -1,0 +1,77 @@
+{
+  "ISO_prefix": "NO-",
+  "fylker": [
+    {
+      "nr": "01",
+      "navn": "Østføld"
+    },
+    {
+      "nr": "02",
+      "navn": "Akershus"
+    },
+    {
+      "nr": "03",
+      "navn": "Oslo"
+    },
+    {
+      "nr": "04",
+      "navn": "Hedmark"
+    },
+    {
+      "nr": "05",
+      "navn": "Oppland"
+    },
+    {
+      "nr": "06",
+      "navn": "Buskerud"
+    },
+    {
+      "nr": "07",
+      "navn": "Vestfold"
+    },
+    {
+      "nr": "08",
+      "navn": "Telemark"
+    },
+    {
+      "nr": "09",
+      "navn": "Aust-Agder"
+    },
+    {
+      "nr": "10",
+      "navn": "Vest-Agder"
+    },
+    {
+      "nr": "11",
+      "navn": "Rogaland"
+    },
+    {
+      "nr": "12",
+      "navn": "Hordaland"
+    },
+    {
+      "nr": "14",
+      "navn": "Sogn og Fjordane"
+    },
+    {
+      "nr": "15",
+      "navn": "Møre og Romsdal"
+    },
+    {
+      "nr": "50",
+      "navn": "Trøndelag"
+    },
+    {
+      "nr": "18",
+      "navn": "Nordland"
+    },
+    {
+      "nr": "19",
+      "navn": "Troms"
+    },
+    {
+      "nr": "20",
+      "navn": "Finnmark"
+    }
+  ]
+}
