@@ -14,17 +14,3 @@ dependencies {
     implementation "org.neo4j:neo4j:3.3.2"     // Neo4j graphdb api
     testCompile group: 'junit', name: 'junit', version: '4.12'
 }
-group 'xyz.gitsieg'
-version '1.0-SNAPSHOT'
-
-apply plugin: 'java'
-
-sourceCompatibility = 1.8
-
-repositories {
-    mavenCentral()
-}
-
-dependencies {
-    testCompile group: 'junit', name: 'junit', version: '4.12'
-}
