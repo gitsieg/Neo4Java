@@ -18,7 +18,7 @@ public class LibJSON {
 
         for (int i = 0; i < json_content_fylker.length(); i++) {
             JSONObject fylke = json_content_fylker.getJSONObject(i);
-            fylker.put(fylke.getString("nr"), fylke.getString("navn"));
+            fylker.put(prefix.concat(fylke.getString("nr")), fylke.getString("navn"));
         }
 
 
@@ -33,7 +33,7 @@ public class LibJSON {
 
 /* ---------- Helpers ---------- */
 
-    private static StringBuilder readJSON(File file) {
+    static StringBuilder readJSON(File file) {
         StringBuilder builder = new StringBuilder();
         try {
             BufferedReader reader = new BufferedReader(
