@@ -1,13 +1,18 @@
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.neo4j.cypher.internal.compiler.v2_3.No;
 import org.neo4j.graphdb.*;
 import org.neo4j.graphdb.factory.GraphDatabaseBuilder;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 
 import java.io.*;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
 
 public class Neo4Demo {
+
+    private static final String NAVN = "navn", KODE = "kode";
 
 
     private static final File DATABASE_DIRECTORY = new File("/var/lib/neo4j/data/databases/administrative-enheter.db");
@@ -18,13 +23,15 @@ public class Neo4Demo {
         Koordinat,
         Kommune,
         Fylke,
-        Land
+        Land,
+        LineString
     }
 
     public enum RelationType implements RelationshipType {
         HAR_KOMMUNE,
-        KOMMUNE_GRENSE,
-        HAR_FYLKE
+        HAR_FYLKE,
+
+
     }
 
 
@@ -51,23 +58,66 @@ public class Neo4Demo {
 
             // Opprett toppnivå i grafen
             Node nodeNorge = graphdb.createNode(NodeType.Land);
-            nodeNorge.setProperty("navn", "Norge");
-            nodeNorge.setProperty("kode", "NO");
+            nodeNorge.setProperty(NAVN, "Norge");
+            nodeNorge.setProperty(KODE, "NO");
 
-            ArrayList<Node> fylker = getFylker(graphdb);
+            // ArrayList for alle fylkeNoder.
+            ArrayList<Node> fylkeNoder = new ArrayList<>();
 
+            // Peker til mappe som inneholder json-ressurser
+            File res = new File("./src/res/json/");
 
-            // Peker til mappe som inneholder fylker.
-            File res = new File("./src/res/json/fylker");
-            System.out.println(res.getAbsolutePath());
-            System.out.println(res.isDirectory());
-            System.out.println(res.exists());
-
-            File[] fylkeFiles = res.listFiles();
-
-            for (File file : fylkeFiles) {
-
+            // Opprett Node for hvert fylke i fylkemap og sett relasjon land->fylke
+            HashMap<String, String> fylkeMap = LibJSON.getFylker(new File(res, "fylker.json"));
+            for (String key : fylkeMap.keySet()) {
+                Node node = graphdb.createNode(NodeType.Fylke);
+                node.setProperty(NAVN, fylkeMap.get(key));
+                node.setProperty(KODE, key);
+                nodeNorge.createRelationshipTo(node, RelationType.HAR_FYLKE);
+                fylkeNoder.add(node);
             }
+
+            // Parse fylkedata
+            for (Node fylke :fylkeNoder) {
+                String isoKode = fylke.getProperty(KODE).toString();
+
+                // Sjekk om fil eksisterer
+                File fylkeFil = new File(res, "fylker/" + isoKode + ".geojson");
+                System.out.println("Fil eksisterer:" + fylkeFil.exists());
+                System.out.println("Filsti:" + fylkeFil.getAbsolutePath());
+
+                // Hent JSON data
+                JSONObject fylkeJSON = new JSONObject(LibJSON.readJSON(fylkeFil).toString());
+
+                // JSON for fylke grense
+                JSONArray grenseFeatures = fylkeJSON.getJSONObject("administrative_enheter.fylkesgrense")
+                                                        .getJSONArray("features");
+
+                for (int i = 0; i < grenseFeatures.length(); i++) {
+                    JSONObject lineString = grenseFeatures.getJSONObject(i);
+                    JSONObject lineProperties = lineString.getJSONObject("geometry");
+                    JSONObject lineGeo = lineString.getJSONObject("properties");
+
+
+                }
+
+
+                
+            }
+
+
+
+
+
+
+
+
+
+//
+//            File[] fylkeFiles = res.listFiles();
+//            for (File file : fylkeFiles) {
+//                System.out.println(file.getName());
+//            }
 
 
 
