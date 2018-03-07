@@ -7,11 +7,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-public class LibJSON {
+class LibJSON {
     static HashMap<String, String> getFylker(File file) {
         HashMap<String, String> fylker = new HashMap<>();
 
-        JSONObject json_file_fylker = new JSONObject(readJSON(file).toString());
+        JSONObject json_file_fylker = new JSONObject(readFile(file).toString());
 
         JSONArray json_content_fylker = json_file_fylker.getJSONArray("fylker");
         String prefix = json_file_fylker.getString("ISO_prefix");
@@ -33,7 +33,12 @@ public class LibJSON {
 
 /* ---------- Helpers ---------- */
 
-    static StringBuilder readJSON(File file) {
+    /**
+     * Takes a JSON file and returns a JSONObject
+     * @param file The file to be read from
+     * @return a StringBuilder containing the whole file
+     */
+    static StringBuilder readFile(File file) {
         StringBuilder builder = new StringBuilder();
         try {
             BufferedReader reader = new BufferedReader(
