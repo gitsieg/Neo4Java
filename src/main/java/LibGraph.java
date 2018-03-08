@@ -1,7 +1,6 @@
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Transaction;
+import org.neo4j.graphdb.*;
 import org.neo4j.kernel.StoreLockException;
 
 import java.io.File;
@@ -36,6 +35,27 @@ class LibGraph {
         void performTransaction(GraphDatabaseService graphdb);
     }
 
+    static void checkRelations(GraphDatabaseService graphdb) {
+        Result result = graphdb.execute("match(n:Koordinat)<--(f:Fylke {navn: \"Telemark\"}) return (n) ");
+        ResourceIterator<Node> it = result.columnAs("n");
+
+        int errorCounter = 0;
+        Node prev, cur;
+
+        if (it.hasNext()) {
+            cur = it.next();
+            System.out.println("Lat: "+cur.getProperty("lat").getClass());
+            while (it.hasNext()) {
+                prev = cur;
+                cur = it.next();
+                if ((double)cur.getProperty("lat") == (double)prev.getProperty("lat")
+                 && (double)cur.getProperty("lon") == (double)prev.getProperty("lon"))
+                    errorCounter++;
+            }
+        } else
+            System.out.println("What the actual fuck?");
+        System.out.println("Error count: "+errorCounter);
+    }
 
 
     static void sjekkKoordinater(File fil) {
@@ -66,8 +86,8 @@ class LibGraph {
             for (int j = 0; j < coordinates.length(); j++) {
                 coordinateContainer = coordinates.getJSONArray(j); // [] 0, 1, 2, 3, 4
                 koordinat = new Koordinat(
-                        coordinateContainer.getFloat(0),
-                        coordinateContainer.getFloat(1)
+                        coordinateContainer.getDouble(0),
+                        coordinateContainer.getDouble(1)
                 );
                 if (!koordinater.contains(koordinat)) {
                     koordinater.add(koordinat);
@@ -85,8 +105,8 @@ class LibGraph {
             for (int j = 0; j < coordinates.length(); j++) {
                 coordinateContainer = coordinates.getJSONArray(j);
                 koordinat = new Koordinat(
-                        coordinateContainer.getFloat(0),
-                        coordinateContainer.getFloat(1)
+                        coordinateContainer.getDouble(0),
+                        coordinateContainer.getDouble(1)
                 );
                 if (!koordinater.contains(koordinat)) {
                     koordinater.add(koordinat);
@@ -97,8 +117,8 @@ class LibGraph {
                 for (int k = 0; k < coordinateContainer.length(); k++) {
                     coordinateSubContainer = coordinateContainer.getJSONArray(k);
                     if (koordinater.contains(new Koordinat(
-                            coordinateSubContainer.getFloat(0),
-                            coordinateSubContainer.getFloat(1)))) {
+                            coordinateSubContainer.getDouble(0),
+                            coordinateSubContainer.getDouble(1)))) {
                         counter++;
                     }
                     kommunegrenseTotal++;
@@ -152,8 +172,8 @@ class Kommune {
     }
 }
 class Koordinat implements Comparable<Koordinat>{
-    float lat, lng;
-    public Koordinat(float lat, float lng) {
+    double lat, lng;
+    public Koordinat(double lat, double lng) {
         this.lat = lat; this.lng = lng;
     }
     @Override
@@ -173,8 +193,8 @@ class Koordinat implements Comparable<Koordinat>{
 
     @Override
     public int compareTo(Koordinat k) {
-        float resultLat = lat - k.lat;
-        float resultLng = lng - k.lng;
+        double resultLat = lat - k.lat;
+        double resultLng = lng - k.lng;
 
         if (resultLat < 0)
             return -1;

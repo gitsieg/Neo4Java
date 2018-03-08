@@ -51,6 +51,14 @@ public class Neo4Demo {
 
         GraphLoader graphLoader = new GraphLoader();
         graphLoader.registerDatasets();
+/*
+        LibGraph.graphTransaction(graphLoader.graphdb, new LibGraph.TransactionCommand() {
+            @Override
+            public void performTransaction(GraphDatabaseService graphdb) {
+                LibGraph.checkRelations(graphLoader.graphdb);
+            }
+        });
+
 //        LibGraph.sjekkKoordinater(new File("./src/res/json/fylker/NO-01.geojson"));
 
 //        JSONArray kommuneFeatures = fylkeData.getJSONObject("administrative_enheter_kommune")

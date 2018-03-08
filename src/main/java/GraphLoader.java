@@ -102,11 +102,12 @@ public class GraphLoader {
 
                     coordinateContainer = coordinates.getJSONArray(0);
                     koordinat = new Koordinat(
-                            coordinateContainer.getFloat(0),
-                            coordinateContainer.getFloat(1)
+                            coordinateContainer.getDouble(0),
+                            coordinateContainer.getDouble(1)
                     );
                     koordinater.add(koordinat);
-
+                    System.out.println("Lat: "+coordinateContainer.getDouble(0)
+                            +" Long: "+coordinateContainer.getDouble(1));
                     koordinatNodeStart = koordinatNodeCurrent = graphdb.createNode(NodeType.Koordinat);
                     koordinatNodeCurrent.setProperty("lat", koordinat.lat);
                     koordinatNodeCurrent.setProperty("lon", koordinat.lng);
@@ -116,8 +117,8 @@ public class GraphLoader {
                         coordinateContainer = coordinates.getJSONArray(j); // [] 0, 1, 2, 3, 4
 
                         koordinat = new Koordinat(
-                            coordinateContainer.getFloat(0),
-                            coordinateContainer.getFloat(1)
+                            coordinateContainer.getDouble(0),
+                            coordinateContainer.getDouble(1)
                         );
                         if (!koordinater.contains(koordinat)) {
                             koordinater.add(koordinat);
@@ -132,16 +133,6 @@ public class GraphLoader {
                     koordinatNodeCurrent.createRelationshipTo(koordinatNodeStart, RelationType.NESTE_PUNKT);
                 }
 
-                Result result = graphdb.execute("match(n:Koordinat)-->(f:Fylke {navn: \"Telemark\"}) return (n) ");
-                ResourceIterator<Node> it = result.columnAs("n");
-
-                Node first = null;
-                if (it.hasNext())
-                    first = it.next();
-
-                while (it.hasNext()) {
-                    Node n = it.next();
-                }
 //
 //                /* -------- Innlessing av kommunedata -------- */
 //                features = json_kommune.getJSONArray("features");
