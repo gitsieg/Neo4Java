@@ -2,12 +2,12 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.kernel.StoreLockException;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Objects;
+import java.util.*;
+
+@SuppressWarnings("Duplicates")
 
 class LibGraph {
     final static String JSON_PATH = "./src/res/json";
@@ -17,28 +17,44 @@ class LibGraph {
     }
 
     static void graphTransaction(GraphDatabaseService graphdb, TransactionCommand... commands ) {
-        Transaction tx = graphdb.beginTx();
-
-        for (TransactionCommand command : commands)
-            command.performTransaction(graphdb);
-
-        tx.success();
-        tx.close();
+        Transaction tx = null;
+        try {
+            for (TransactionCommand command : commands) {
+                tx = graphdb.beginTx();
+                command.performTransaction(graphdb);
+                tx.success();
+                tx.close();
+            }
+        } catch (StoreLockException e) {
+            if (tx != null)
+                tx.close();
+        } finally {
+            graphdb.shutdown();
+        }
+    }
+    interface TransactionCommand {
+        void performTransaction(GraphDatabaseService graphdb);
     }
 
-    static void sjekkKoordinater(File fil) {
-        JSONObject fylke = new JSONObject(LibJSON.readJSON(fil).toString());
 
-        HashSet<Koordinat> koordinater = new HashSet<>();
+
+    static void sjekkKoordinater(File fil) {
+        long start = System.currentTimeMillis();
+        JSONObject fylke = new JSONObject(LibJSON.readFile(fil).toString());
+
+        TreeSet<Koordinat> koordinater = new TreeSet<>();
         int counter = 0, fylkegrenseTotal = 0, kommunegrenseTotal = 0;
 
+
         JSONObject fylkesgrense = fylke.getJSONObject("administrative_enheter.fylkesgrense");
-        JSONObject kommuner = fylke.getJSONObject("administrative_enheter.kommune");
+        JSONObject kommuner = fylke.getJSONObject("administrative_enheter.kommunegrense");
 
         JSONArray features;
         JSONArray coordinates;
         JSONArray coordinateContainer;
         JSONArray coordinateSubContainer;
+
+        Koordinat koordinat;
 
         features = fylkesgrense.getJSONArray("features");
         for (int i = 0; i < features.length(); i++) {
@@ -49,11 +65,14 @@ class LibGraph {
 
             for (int j = 0; j < coordinates.length(); j++) {
                 coordinateContainer = coordinates.getJSONArray(j); // [] 0, 1, 2, 3, 4
-                koordinater.add(new Koordinat(
+                koordinat = new Koordinat(
                         coordinateContainer.getFloat(0),
                         coordinateContainer.getFloat(1)
-                ));
-                fylkegrenseTotal++;
+                );
+                if (!koordinater.contains(koordinat)) {
+                    koordinater.add(koordinat);
+                    fylkegrenseTotal++;
+                }
             }
         }
 
@@ -65,6 +84,16 @@ class LibGraph {
                     .getJSONArray("coordinates");
             for (int j = 0; j < coordinates.length(); j++) {
                 coordinateContainer = coordinates.getJSONArray(j);
+                koordinat = new Koordinat(
+                        coordinateContainer.getFloat(0),
+                        coordinateContainer.getFloat(1)
+                );
+                if (!koordinater.contains(koordinat)) {
+                    koordinater.add(koordinat);
+                    kommunegrenseTotal++;
+                } else
+                    counter++;
+                /*
                 for (int k = 0; k < coordinateContainer.length(); k++) {
                     coordinateSubContainer = coordinateContainer.getJSONArray(k);
                     if (koordinater.contains(new Koordinat(
@@ -74,18 +103,17 @@ class LibGraph {
                     }
                     kommunegrenseTotal++;
                 }
+                */
             }
         }
+
+        long stop = System.currentTimeMillis();
+        System.out.println("Time used: "+(stop-start));
 
         System.out.println("Fylkegrense-koordinater: "+fylkegrenseTotal);
         System.out.println("Kommunegrense-koordinater: "+kommunegrenseTotal);
         System.out.println("Equal count: "+counter);
 
-    }
-
-
-    interface TransactionCommand {
-        void performTransaction(GraphDatabaseService graphdb);
     }
 }
 
@@ -123,7 +151,7 @@ class Kommune {
         this.egenskaper = egenskaper;
     }
 }
-class Koordinat {
+class Koordinat implements Comparable<Koordinat>{
     float lat, lng;
     public Koordinat(float lat, float lng) {
         this.lat = lat; this.lng = lng;
@@ -141,5 +169,23 @@ class Koordinat {
             return false;
         Koordinat k = (Koordinat)o;
         return (lat == k.lat && lng == k.lng);
+    }
+
+    @Override
+    public int compareTo(Koordinat k) {
+        float resultLat = lat - k.lat;
+        float resultLng = lng - k.lng;
+
+        if (resultLat < 0)
+            return -1;
+        else if (resultLat > 0)
+            return 1;
+        else
+            if (resultLng < 0)
+                return -1;
+            else if (resultLng > 0)
+                return 1;
+            else
+                return 0;
     }
 }

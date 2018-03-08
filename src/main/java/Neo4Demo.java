@@ -15,7 +15,10 @@ public class Neo4Demo {
     private static final String NAVN = "navn", KODE = "kode";
 
 
-    private static final File DATABASE_DIRECTORY = new File("/var/lib/neo4j/data/databases/administrative-enheter.db");
+    private static File DATABASE_DIRECTORY =
+            (System.getProperty("os.name").startsWith("Windows")) ?
+                    new File("some\\laughable\\fucking\\shit") :
+                    new File("/var/lib/neo4j/data/databases/administrative-enheter.db");
     // Predefined queries.
     private static final String DETACH_DELETE = "MATCH (n) DETACH DELETE n";
 
@@ -38,6 +41,7 @@ public class Neo4Demo {
     }
 
 
+    @SuppressWarnings("Duplicates")
     /**
      * e
      *
@@ -45,12 +49,14 @@ public class Neo4Demo {
      */
     public static void main(String[] args) {
 
+        GraphLoader graphLoader = new GraphLoader();
+        graphLoader.registerDatasets();
 //        LibGraph.sjekkKoordinater(new File("./src/res/json/fylker/NO-01.geojson"));
 
 //        JSONArray kommuneFeatures = fylkeData.getJSONObject("administrative_enheter_kommune")
 //                .getJSONArray("features");
 
-
+/*
         GraphDatabaseFactory dbFactory = new GraphDatabaseFactory();
         GraphDatabaseBuilder builder = dbFactory.newEmbeddedDatabaseBuilder(DATABASE_DIRECTORY);
         GraphDatabaseService graphdb = builder.newGraphDatabase();
@@ -150,8 +156,8 @@ public class Neo4Demo {
             tx.close();
         }
         graphdb.shutdown();
+        */
     }
-
     /**
      * Reads a file with character data.
      *

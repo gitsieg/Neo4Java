@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 class LibJSON {
+
     static HashMap<String, String> getFylker(File file) {
         HashMap<String, String> fylker = new HashMap<>();
 
