@@ -16,7 +16,12 @@ public class Neo4Demo {
 
     private static final String DATABASE_PATH = "C:\\Users\\AtleAmun\\AppData\\Roaming\\Neo4j Desktop\\Application\\neo4jDatabases\\database-4636402a-6111-427f-bbd9-dd6959fd5a6f\\installation-3.3.3\\data\\databases\\graph.db";
 
-    private static final File DATABASE_DIRECTORY = new File(DATABASE_PATH);
+
+    private static File DATABASE_DIRECTORY =
+            (System.getProperty("os.name").startsWith("Windows")) ?
+                    new File("some\\laughable\\fucking\\shit") :
+                    new File("/var/lib/neo4j/data/databases/administrative-enheter.db");
+
     // Predefined queries.
     private static final String DETACH_DELETE = "MATCH (n) DETACH DELETE n";
 
@@ -39,6 +44,7 @@ public class Neo4Demo {
     }
 
 
+    @SuppressWarnings("Duplicates")
     /**
      * e
      *
@@ -46,12 +52,22 @@ public class Neo4Demo {
      */
     public static void main(String[] args) {
 
+        GraphLoader graphLoader = new GraphLoader();
+        graphLoader.registerDatasets();
+/*
+        LibGraph.graphTransaction(graphLoader.graphdb, new LibGraph.TransactionCommand() {
+            @Override
+            public void performTransaction(GraphDatabaseService graphdb) {
+                LibGraph.checkRelations(graphLoader.graphdb);
+            }
+        });
+
 //        LibGraph.sjekkKoordinater(new File("./src/res/json/fylker/NO-01.geojson"));
 
 //        JSONArray kommuneFeatures = fylkeData.getJSONObject("administrative_enheter_kommune")
 //                .getJSONArray("features");
 
-
+/*
         GraphDatabaseFactory dbFactory = new GraphDatabaseFactory();
         GraphDatabaseBuilder builder = dbFactory.newEmbeddedDatabaseBuilder(DATABASE_DIRECTORY);
         GraphDatabaseService graphdb = builder.newGraphDatabase();
@@ -151,8 +167,8 @@ public class Neo4Demo {
             tx.close();
         }
         graphdb.shutdown();
+        */
     }
-
     /**
      * Reads a file with character data.
      *
