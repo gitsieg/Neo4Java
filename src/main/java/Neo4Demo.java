@@ -14,11 +14,14 @@ public class Neo4Demo {
 
     private static final String NAVN = "navn", KODE = "kode";
 
+    private static final String WIN_DATABASE_PATH = "C:\\Users\\AtleAmun\\AppData\\Roaming\\Neo4j Desktop\\Application\\neo4jDatabases\\database-4636402a-6111-427f-bbd9-dd6959fd5a6f\\installation-3.3.3\\data\\databases\\graph.db";
+
 
     private static File DATABASE_DIRECTORY =
             (System.getProperty("os.name").startsWith("Windows")) ?
-                    new File("some\\laughable\\fucking\\shit") :
-                    new File("/var/lib/neo4j/data/databases/administrative-enheter.db");
+                    new File(WIN_DATABASE_PATH) : // Windows
+                    new File("/var/lib/neo4j/data/databases/administrative-enheter.db"); // Linux
+
     // Predefined queries.
     private static final String DETACH_DELETE = "MATCH (n) DETACH DELETE n";
 

@@ -59,7 +59,9 @@ class LibGraph {
 
 
     static void sjekkKoordinater(File fil) {
+
         long start = System.currentTimeMillis();
+
         JSONObject fylke = new JSONObject(LibJSON.readFile(fil).toString());
 
         TreeSet<Koordinat> koordinater = new TreeSet<>();
