@@ -27,7 +27,7 @@ class LibGraph {
     }
 
     static void sjekkKoordinater(File fil) {
-        JSONObject fylke = new JSONObject(LibJSON.readJSON(fil).toString());
+        JSONObject fylke = new JSONObject(LibJSON.readFile(fil).toString());
 
         HashSet<Koordinat> koordinater = new HashSet<>();
         int counter = 0, fylkegrenseTotal = 0, kommunegrenseTotal = 0;
