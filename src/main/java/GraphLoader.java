@@ -142,7 +142,7 @@ public class GraphLoader {
 
                 /* -------- Innlessing av kommunedata -------- */
 
-/*
+
                 features = json_kommune.getJSONArray("features");
                 for (int i = 0; i < features.length(); i++) {
                     coordinates = features
@@ -164,7 +164,7 @@ public class GraphLoader {
                         if (koordinatNodePrevious != null)
                             koordinatNodePrevious.createRelationshipTo(koordinatNodeCurrent, RelationType.NESTE_PUNKT);
                     }
-                }*/
+                }
             }
         });
     }
