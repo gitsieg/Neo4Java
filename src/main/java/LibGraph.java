@@ -208,4 +208,8 @@ class Koordinat implements Comparable<Koordinat>{
             else
                 return 0;
     }
+    @Override
+    public String toString() {
+        return "[Lat: "+lat+ "|" + "Long: "+lng+"]";
+    }
 }
