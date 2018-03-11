@@ -175,9 +175,20 @@ class Kommune {
 }
 class Koordinat implements Comparable<Koordinat>{
     double lat, lng;
+    Node tilkobletNode;
+
     public Koordinat(double lat, double lng) {
         this.lat = lat; this.lng = lng;
+        tilkobletNode = null;
     }
+
+    boolean kobleNode(Node node){
+        if (tilkobletNode != null)
+            return false;
+        tilkobletNode = node;
+        return true;
+    }
+
     @Override
     public int hashCode() {
         return Objects.hash(lat, lng);
