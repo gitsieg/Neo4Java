@@ -27,8 +27,6 @@ class LibGraph {
         } catch (StoreLockException e) {
             if (tx != null)
                 tx.close();
-        } finally {
-            graphdb.shutdown();
         }
     }
     interface TransactionCommand {
@@ -186,6 +184,8 @@ class Koordinat implements Comparable<Koordinat>{
         if (tilkobletNode != null)
             return false;
         tilkobletNode = node;
+        tilkobletNode.setProperty("lat", lat);
+        tilkobletNode.setProperty("lon", lng);
         return true;
     }
 

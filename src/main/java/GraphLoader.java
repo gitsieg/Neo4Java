@@ -24,11 +24,13 @@ public class GraphLoader {
     private final static String DETACH_DELETE = "MATCH (n) DETACH DELETE n";
 
     private static final String NAVN = "navn", KODE = "kode";
-    int lolcount = 0;
+
 /* ------ Objekt-variabler ------ */
     final GraphDatabaseFactory dbFactory;
     final GraphDatabaseBuilder builder;
     final GraphDatabaseService graphdb;
+
+
 
     final Logger graphLogger;
 
@@ -45,190 +47,160 @@ public class GraphLoader {
 
     // todo- Feilhåndtering
     public void registerDatasets() {
+
+        TreeSet<Koordinat> koordinater = new TreeSet<>();
+        ArrayList<Node> fylkeNoder = new ArrayList<>();
+
         LibGraph.graphTransaction(this.graphdb, txCmd -> {
-            graphdb.execute(DETACH_DELETE); // For å fjerne all eksisterende data
+                graphdb.execute(DETACH_DELETE); // For å fjerne all eksisterende data
 
-            Node nodeNorge = graphdb.createNode(NodeType.Land);
-            nodeNorge.setProperty(NAVN, "Norge");
-            nodeNorge.setProperty(KODE, "NO");
+                Node nodeNorge = graphdb.createNode(NodeType.Land);
+                nodeNorge.setProperty(NAVN, "Norge");
+                nodeNorge.setProperty(KODE, "NO");
 
-            // ArrayList for alle fylkenoder.
-            ArrayList<Node> fylkeNoder = new ArrayList<>();
+                // Peker til mappe som inneholder json-ressurser
+                File res = new File(RES_JSON);
 
-            // Peker til mappe som inneholder json-ressurser
-            File res = new File(RES_JSON);
-
-            HashMap<String, String> fylkeMap = LibJSON.getFylker(new File(res,"fylker.json"));
-            for (String key : fylkeMap.keySet()) {
-                Node node = graphdb.createNode(NodeType.Fylke);
-                node.setProperty(NAVN, fylkeMap.get(key));
-                node.setProperty(KODE, key);
-                nodeNorge.createRelationshipTo(node, RelationType.HAR_FYLKE);
-                fylkeNoder.add(node);
-            }
-
+                HashMap<String, String> fylkeMap = LibJSON.getFylker(new File(res, "fylker.json"));
+                for (String key : fylkeMap.keySet()) {
+                    Node node = graphdb.createNode(NodeType.Fylke);
+                    node.setProperty(NAVN, fylkeMap.get(key));
+                    node.setProperty(KODE, key);
+                    nodeNorge.createRelationshipTo(node, RelationType.HAR_FYLKE);
+                    fylkeNoder.add(node);
+                }
+            });
             // Gjennomløp fylkedata
-            for (Node fylke : fylkeNoder) {
+        for (Node fylke : fylkeNoder) {
+            LibGraph.graphTransaction(this.graphdb, txCmd -> {
                 String isoKode = fylke.getProperty(KODE).toString();
 
                 // Sjekk om fil eksisterer
+                File res = new File(RES_JSON);
                 File fylkeFil = new File(res, "fylker/".concat(isoKode).concat(".geojson"));
                 graphLogger.log(Level.INFO, "Fil eksisterer:"+fylkeFil.exists());
                 graphLogger.log(Level.INFO, "Filsti:" + fylkeFil.getAbsolutePath());
 
                 // Hent JSON data
-                TreeSet<Koordinat> koordinater = new TreeSet<>();
 
                 final JSONObject json_fylkeFil = new JSONObject(LibJSON.readFile(fylkeFil).toString());
                 final JSONObject json_fylke = json_fylkeFil .getJSONObject("administrative_enheter.fylkesgrense");
                 final JSONObject json_kommuner = json_fylkeFil .getJSONObject("administrative_enheter.kommune");;
-                JSONObject kommune;
+                JSONObject json_kommune;
 
                 // Objekter for gjenbruk
                 JSONArray features;
                 JSONArray coordinates;
                 JSONArray coordinateContainer;
 
-                Node koordinatNodePrevious = null, koordinatNodeCurrent = null;
-                Node koordinatFylkeStart = null, koordinatKommuneStart = null;
                 /* -------- Innlesing a fylkedata -------- */
                 features = json_fylke.getJSONArray("features");
-                for (int i = 0, j = 0; i < 5/*features.length()*/; i++, j = 0) {
+
+                // Spesialbehandling av første entry
+                coordinateContainer = features
+                        .getJSONObject(0) // {} 0, 1, 2, 3, 4
+                        .getJSONObject("geometry") // {} geometry
+                        .getJSONArray("coordinates") // [] coordinates
+                        .getJSONArray(0);
+
+                Koordinat koordinatFylkeStart = new Koordinat(
+                        coordinateContainer.getDouble(0),
+                        coordinateContainer.getDouble(1)
+                );
+                koordinater.add(koordinatFylkeStart);
+                koordinatFylkeStart.kobleNode( graphdb.createNode(NodeType.Koordinat) );
+                koordinatFylkeStart.tilkobletNode.setProperty("start", "start");
+                fylke.createRelationshipTo(koordinatFylkeStart.tilkobletNode, RelationType.HAR_KOORDINAT);
+
+                Koordinat koordinatFylkePrevious = koordinatFylkeStart;
+                for (int i = 0, j = 1; i < features.length(); i++, j = 0) {
                     coordinates = features
                             .getJSONObject(i) // {} 0, 1, 2, 3, 4
                             .getJSONObject("geometry") // {} geometry
                             .getJSONArray("coordinates"); // [] coordinates
 
-                    coordinateContainer = coordinates.getJSONArray(0);
-
-                    Koordinat startKoordinat = new Koordinat(
-                            coordinateContainer.getDouble(0),
-                            coordinateContainer.getDouble(1)
-                    );
-                    if (koordinatNodePrevious == null) {
-                        if (koordinater.add(startKoordinat)) {
-                            koordinatNodeCurrent = graphdb.createNode(NodeType.Koordinat);
-                            koordinatNodeCurrent.setProperty("lat", startKoordinat.lat);
-                            koordinatNodeCurrent.setProperty("lon", startKoordinat.lng);
-                            fylke.createRelationshipTo(koordinatNodeCurrent, RelationType.HAR_KOORDINAT);
-                            if (koordinatNodePrevious != null)
-                                koordinatNodePrevious.createRelationshipTo(koordinatNodeCurrent, RelationType.NESTE_PUNKT_FYLKE);
-
-                            startKoordinat.kobleNode(koordinatNodeCurrent);
-                        }
-                    }
-
-                    if (koordinatFylkeStart == null)
-                        koordinatFylkeStart = koordinatNodeCurrent;
-
                     for ( ; j < coordinates.length(); j++) {
                         coordinateContainer = coordinates.getJSONArray(j); // [] 0, 1, 2, 3, 4
 
-                        Koordinat tmpKoordinat = new Koordinat(
-                            coordinateContainer.getDouble(0),
-                            coordinateContainer.getDouble(1)
+                        Koordinat koordinatFylkeCurrent = new Koordinat(
+                                coordinateContainer.getDouble(0),
+                                coordinateContainer.getDouble(1)
                         );
-                        if (koordinater.add(tmpKoordinat)) {
-                            koordinatNodePrevious = koordinatNodeCurrent;
-                            koordinatNodeCurrent = graphdb.createNode(NodeType.Koordinat);
-                            koordinatNodeCurrent.setProperty("lat", tmpKoordinat.lat);
-                            koordinatNodeCurrent.setProperty("lon", tmpKoordinat.lng);
-                            koordinatNodePrevious.createRelationshipTo(koordinatNodeCurrent, RelationType.NESTE_PUNKT_FYLKE);
-                            fylke.createRelationshipTo(koordinatNodeCurrent, RelationType.HAR_KOORDINAT);
-
-                            tmpKoordinat.kobleNode(koordinatNodeCurrent);
+                        if (koordinater.add(koordinatFylkeCurrent)) {
+                            koordinatFylkeCurrent.kobleNode(graphdb.createNode(NodeType.Koordinat));
+                            koordinatFylkePrevious.tilkobletNode.createRelationshipTo(
+                                    koordinatFylkeCurrent.tilkobletNode, RelationType.NESTE_PUNKT_FYLKE);
+                            fylke.createRelationshipTo(koordinatFylkeCurrent.tilkobletNode, RelationType.HAR_KOORDINAT);
+                            koordinatFylkePrevious = koordinatFylkeCurrent;
                         }
                     }
                 }
-                koordinatNodeCurrent.createRelationshipTo(koordinatFylkeStart, RelationType.NESTE_PUNKT_FYLKE);
-                koordinatFylkeStart.setProperty("start", "start");
+                koordinatFylkePrevious.tilkobletNode.createRelationshipTo(
+                        koordinatFylkeStart.tilkobletNode, RelationType.NESTE_PUNKT_FYLKE);
 
-                System.out.println("Final size: "+koordinater.size());
+
+                System.out.println("Antall fylkekoordinater: "+koordinater.size());
 
                 /* -------- Innlessing av kommunedata -------- */
                 features = json_kommuner.getJSONArray("features");
                 for (int i = 0; i < features.length(); i++) {
 
-                    kommune = features.getJSONObject(i); // {} 0
+                    json_kommune = features.getJSONObject(i); // {} 0
 
-                    Node kommuneNode = graphdb.createNode(NodeType.Kommune);
-                    kommuneNode.setProperty("navn",kommune
+                    Node kommune = graphdb.createNode(NodeType.Kommune);
+                    kommune.setProperty("navn",json_kommune
                             .getJSONObject("properties")
                             .getJSONArray("navn")
                             .getJSONObject(0).getString("navn"));
-                    fylke.createRelationshipTo(kommuneNode, RelationType.HAR_KOMMUNE);
+                    fylke.createRelationshipTo(kommune, RelationType.HAR_KOMMUNE);
 
-                    coordinates = kommune
+                    coordinates = json_kommune
                             .getJSONObject("geometry") // {} geometry
                             .getJSONArray("coordinates") // [] coordinates
                             .getJSONArray(0); // [] 0
 
                     // coordinates er nå en liste over sammtlige koordinater for kommunen
 
+                    // Spesialbehandling av første koordinat
                     coordinateContainer = coordinates.getJSONArray(0); // Første av [] 0, 1, 2, 3, 5 ...
-
-                    Koordinat startKoordinat = new Koordinat(
+                    Koordinat koordinatKommunePrevious, koordinatKommuneStart = new Koordinat(
                             coordinateContainer.getDouble(0),
                             coordinateContainer.getDouble(1)
                     );
-                    if (koordinater.add(startKoordinat)) {
-                        koordinatNodeCurrent = graphdb.createNode(NodeType.Koordinat);
-                        koordinatNodeCurrent.setProperty("lat", startKoordinat.lat);
-                        koordinatNodeCurrent.setProperty("lon", startKoordinat.lng);
-                        kommuneNode.createRelationshipTo(koordinatNodeCurrent, RelationType.HAR_KOORDINAT);
-                        koordinatKommuneStart = koordinatNodeCurrent;
-
-                        startKoordinat.kobleNode(koordinatNodeCurrent);
+                    if (koordinater.add(koordinatKommuneStart)) {
+                        koordinatKommuneStart.kobleNode(graphdb.createNode(NodeType.Koordinat));
+                        koordinatKommuneStart.tilkobletNode.setProperty("start", "start");
+                        kommune.createRelationshipTo(koordinatKommuneStart.tilkobletNode, RelationType.HAR_KOORDINAT);
+                        koordinatKommunePrevious = koordinatKommuneStart;
                     } else {
-                        Koordinat c = koordinater.ceiling(startKoordinat);
-                        Koordinat f = koordinater.floor(startKoordinat);
-                        if (c == f) {
-                            kommuneNode.createRelationshipTo(c.tilkobletNode, RelationType.HAR_KOORDINAT);
-                            koordinatKommuneStart = c.tilkobletNode;
-                        } else
-                            System.out.println("Yeah holy shit det skal være umulig, this is bad.");
+                        koordinatKommunePrevious = koordinatKommuneStart = koordinater.ceiling(koordinatKommuneStart);
+                        kommune.createRelationshipTo(koordinatKommunePrevious.tilkobletNode, RelationType.HAR_KOORDINAT);
                     }
-//                    if (koordinatKommuneStart == null)
-//                        koordinatKommuneStart = koordinatNodeCurrent;
 
-                    for (int j = 1; j < 5/*coordinates.length()*/; j++) {
+                    for (int j = 1; j < coordinates.length(); j++) {
                         coordinateContainer = coordinates.getJSONArray(j);
 
-                        Koordinat tmpKoordinat = new Koordinat(
+                        Koordinat koordinatKommuneCurrent = new Koordinat(
                                 coordinateContainer.getDouble(0),
                                 coordinateContainer.getDouble(1)
                         );
-                        if (koordinater.add(tmpKoordinat)) {
-                            koordinatNodePrevious = koordinatNodeCurrent;
-                            koordinatNodeCurrent = graphdb.createNode(NodeType.Koordinat);
-                            koordinatNodeCurrent.setProperty("lat", tmpKoordinat.lat);
-                            koordinatNodeCurrent.setProperty("lon", tmpKoordinat.lng);
 
-                            koordinatNodePrevious.createRelationshipTo(koordinatNodeCurrent, RelationType.NESTE_PUNKT_KOMMUNE);
-                            kommuneNode.createRelationshipTo(koordinatNodeCurrent, RelationType.HAR_KOORDINAT);
-
-                            tmpKoordinat.kobleNode(koordinatNodeCurrent);
+                        if (koordinater.add(koordinatKommuneCurrent)) {
+                            koordinatKommuneCurrent.kobleNode(graphdb.createNode(NodeType.Koordinat));
                         } else {
-                            Koordinat c = koordinater.ceiling(tmpKoordinat);
-                            Koordinat f = koordinater.floor(tmpKoordinat);
-                            if (c == f) {
-                                System.out.println("Found some shit.");
-                                kommuneNode.createRelationshipTo(c.tilkobletNode, RelationType.HAR_KOORDINAT);
-                                koordinatNodePrevious.createRelationshipTo(c.tilkobletNode, RelationType.NESTE_PUNKT_KOMMUNE);
-                            } else
-                                System.out.println("Yeah holy shit det skal være umulig, this is bad.");
-
-                            // Sjekke om previous allerede er koblet
-                            // om ikke, koble previous med c.tilkobletnode
+                            koordinatKommuneCurrent = koordinater.ceiling(koordinatKommuneCurrent);
                         }
+                        kommune.createRelationshipTo(koordinatKommuneCurrent.tilkobletNode, RelationType.HAR_KOORDINAT);
+                        koordinatKommunePrevious.tilkobletNode.createRelationshipTo(
+                                koordinatKommuneCurrent.tilkobletNode, RelationType.NESTE_PUNKT_KOMMUNE);
+                        koordinatKommunePrevious = koordinatKommuneCurrent;
                     } // Slutt - Gjennomløping av kommunens grnsepunkter
-
-                    koordinatNodeCurrent.createRelationshipTo(koordinatKommuneStart, RelationType.NESTE_PUNKT_KOMMUNE);
-                    koordinatKommuneStart.setProperty("start", "start");
+                    koordinatKommunePrevious.tilkobletNode.createRelationshipTo(
+                            koordinatKommuneStart.tilkobletNode, RelationType.NESTE_PUNKT_KOMMUNE);
                 } // Slutt - Gjennomløping av fylke
-//                return;
-            } // Slutt - Gjennomløping av fylker
-        });
+            });
+        } // Slutt - Gjennomløping av fylker
+        graphdb.shutdown();
     }
 
     private void registerShutdownHook(final GraphDatabaseService graphDb) {
