@@ -27,6 +27,7 @@ class LibGraph {
         } catch (StoreLockException e) {
             if (tx != null)
                 tx.close();
+            graphdb.shutdown();
         }
     }
     interface TransactionCommand {
