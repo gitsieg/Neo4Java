@@ -27,11 +27,10 @@ class LibGraph {
         } catch (StoreLockException e) {
             if (tx != null)
                 tx.close();
-            graphdb.shutdown();
         }
     }
     interface TransactionCommand {
-        void performTransaction(GraphDatabaseService graphdb);
+        void performTransaction(GraphDatabaseService graphdb) throws StoreLockException;
     }
 
     static void checkRelations(GraphDatabaseService graphdb) {
