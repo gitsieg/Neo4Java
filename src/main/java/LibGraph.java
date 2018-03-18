@@ -11,10 +11,6 @@ import java.util.*;
 class LibGraph {
     final static String JSON_PATH = "./src/res/json";
 
-    static Fylke loadFylke(File fylke) {
-        return null;
-    }
-
     static void graphTransaction(GraphDatabaseService graphdb, TransactionCommand... commands ) {
         Transaction tx = null;
         try {
@@ -24,7 +20,13 @@ class LibGraph {
                 tx.success();
                 tx.close();
             }
-        } catch (StoreLockException e) {
+        } catch (StoreLockException sle) {
+            System.out.println("Store lock exception");
+        } catch (RuntimeException re) {
+            System.out.println("Runtime exception");
+        } catch (Exception e){
+            System.out.println("Exception");
+        } finally {
             if (tx != null)
                 tx.close();
         }
@@ -137,58 +139,63 @@ class LibGraph {
     }
 }
 
-class Fylke {
-    int kode;
-    String navn;
-    ArrayList<Koordinat> grensepunkter;
 
-    private Fylke(int kode, String navn, ArrayList<Koordinat> grensepunkter, ArrayList<Kommune> kommuner) {
-        this.kode = kode;
-        this.navn = navn;
-        this.grensepunkter = grensepunkter;
-        this.kommuner = kommuner;
+class Forhold implements Comparable<Forhold> {
+    private final static String relationTypeExceptionMessage = "Feil RelationType. Må være"
+            +"\n - RelationType.NESTE_PUNKT_FYLKE"
+            +"\n - RelationType.NESTE_PUNKT_KOMMUNE";
+
+    final Koordinat fra, til;
+    final GraphLoader.RelationType type;
+
+    public Forhold(Koordinat fra, Koordinat til, GraphLoader.RelationType type) throws IllegalArgumentException {
+        if ( !(type == GraphLoader.RelationType.NESTE_PUNKT_FYLKE
+                || type == GraphLoader.RelationType.NESTE_PUNKT_KOMMUNE) )
+            throw new IllegalArgumentException(relationTypeExceptionMessage);
+        this.fra = fra;
+        this. til = til;
+        this.type = type;
     }
 
-    ArrayList<Kommune> kommuner;
-}
-class Kommune {
-    int kode;
-    String navn;
-    ArrayList<Koordinat> grensepunkter;
-    HashMap<String, Object> egenskaper;
-
-    /**
-     *
-     * @param kode Kommunens tallkode
-     * @param navn Kommunens navn
-     * @param grensepunkter Koordinatparene som tilsammen utgjør kommunens grenser
-     * @param egenskaper Tar vare på kommunens egenskaper i form av &lt;String, Object&gt; referanser. Det må gjøres klassetest på Object-verdien.
-     */
-    private Kommune(int kode, String navn, ArrayList<Koordinat> grensepunkter, HashMap<String, Object> egenskaper) {
-        this.kode = kode;
-        this.navn = navn;
-        this.grensepunkter = grensepunkter;
-        this.egenskaper = egenskaper;
+    @Override
+    public int compareTo(Forhold forhold) {
+        if (this.fra.compareTo(forhold.fra) < 0)
+            return -1;
+        else if (this.fra.compareTo(forhold.fra) > 0)
+            return 1;
+        else
+            if (this.til.compareTo(forhold.til) < 0)
+                return -1;
+            else if (this.til.compareTo(forhold.til) > 0)
+                return 1;
+            else
+                if (this.type == GraphLoader.RelationType.NESTE_PUNKT_FYLKE
+                        && forhold.type == GraphLoader.RelationType.NESTE_PUNKT_KOMMUNE)
+                    return -1;
+                else if (this.type == GraphLoader.RelationType.NESTE_PUNKT_KOMMUNE
+                        && forhold.type == GraphLoader.RelationType.NESTE_PUNKT_FYLKE)
+                    return 1;
+                else
+                    return 0;
     }
 }
-class Koordinat implements Comparable<Koordinat>{
-    double lat, lng;
+class Koordinat implements Comparable<Koordinat> {
+    double lat, lon;
     Node tilkobletNode;
 
-    public Koordinat(double lat, double lng) {
-        this.lat = lat; this.lng = lng;
+    public Koordinat(double lat, double lon) {
+        this.lat = lat; this.lon = lon;
         tilkobletNode = null;
     }
 
-    boolean kobleNode(Node node){
+    void kobleNode(Node node){
         if (tilkobletNode != null)
-            return false;
+            throw new IllegalArgumentException();
         tilkobletNode = node;
         tilkobletNode.setProperty("lat", lat);
-        tilkobletNode.setProperty("lon", lng);
-        return true;
+        tilkobletNode.setProperty("lon", lon);
     }
-
+/*
     @Override
     public int hashCode() {
         return Objects.hash(lat, lng);
@@ -203,11 +210,11 @@ class Koordinat implements Comparable<Koordinat>{
         Koordinat k = (Koordinat)o;
         return (lat == k.lat && lng == k.lng);
     }
-
+*/
     @Override
     public int compareTo(Koordinat k) {
         double resultLat = lat - k.lat;
-        double resultLng = lng - k.lng;
+        double resultLng = lon - k.lon;
 
         if (resultLat < 0)
             return -1;
@@ -223,6 +230,6 @@ class Koordinat implements Comparable<Koordinat>{
     }
     @Override
     public String toString() {
-        return "[Lat: "+lat+ "|" + "Long: "+lng+"]";
+        return "[Lat: "+lat+ "|" + "Long: "+lon+"]";
     }
 }

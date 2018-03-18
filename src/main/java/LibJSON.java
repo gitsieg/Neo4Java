@@ -1,11 +1,8 @@
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.neo4j.graphdb.Node;
 
 import java.io.*;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Map;
 
 class LibJSON {
 
@@ -21,15 +18,8 @@ class LibJSON {
             JSONObject fylke = json_content_fylker.getJSONObject(i);
             fylker.put(prefix.concat(fylke.getString("nr")), fylke.getString("navn"));
         }
-
-
         return fylker;
     }
-
-
-
-
-
 
 
 /* ---------- Helpers ---------- */
