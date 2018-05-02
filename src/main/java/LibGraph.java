@@ -32,7 +32,7 @@ class LibGraph {
         }
     }
     interface TransactionCommand {
-        void performTransaction(GraphDatabaseService graphdb) throws StoreLockException;
+        void performTransaction(GraphDatabaseService graphdb) throws Exception;
     }
 
     static void checkRelations(GraphDatabaseService graphdb) {
@@ -57,6 +57,18 @@ class LibGraph {
         System.out.println("Error count: "+errorCounter);
     }
 
+    static boolean addForholdToSet(Koordinat fra, Koordinat til,
+                           GraphLoader.RelationType type, TreeSet<Forhold> forhold) {
+        if (fra.tilkobletNode == til.tilkobletNode && fra != til)
+            System.out.println("What the fucking fuck");
+
+        if (fra.tilkobletNode == til.tilkobletNode || fra == til)
+            return false;
+        else
+            return forhold.add(new Forhold(
+                    fra, til, type
+            ));
+    }
 
     static void sjekkKoordinater(File fil) {
 
@@ -139,13 +151,12 @@ class LibGraph {
     }
 }
 
-
 class Forhold implements Comparable<Forhold> {
     private final static String relationTypeExceptionMessage = "Feil RelationType. Må være"
             +"\n - RelationType.NESTE_PUNKT_FYLKE"
             +"\n - RelationType.NESTE_PUNKT_KOMMUNE";
 
-    final Koordinat fra, til;
+    private final Koordinat fra, til;
     final GraphLoader.RelationType type;
 
     public Forhold(Koordinat fra, Koordinat til, GraphLoader.RelationType type) throws IllegalArgumentException {
@@ -159,6 +170,13 @@ class Forhold implements Comparable<Forhold> {
 
     @Override
     public int compareTo(Forhold forhold) {
+
+        // Guards for when a relationship has been defined between the two nodes
+        if (this.fra.compareTo(forhold.til) == 0 && this.til.compareTo(forhold.fra) == 0)
+            return 0;
+        if (this.fra.compareTo(forhold.fra) == 0 && this.til.compareTo(forhold.til) == 0)
+            return 0;
+
         if (this.fra.compareTo(forhold.fra) < 0)
             return -1;
         else if (this.fra.compareTo(forhold.fra) > 0)
@@ -166,21 +184,12 @@ class Forhold implements Comparable<Forhold> {
         else
             if (this.til.compareTo(forhold.til) < 0)
                 return -1;
-            else if (this.til.compareTo(forhold.til) > 0)
+            else // if (this.til.compareTo(forhold.til) > 0) // Ooold
                 return 1;
-            else
-                if (this.type == GraphLoader.RelationType.NESTE_PUNKT_FYLKE
-                        && forhold.type == GraphLoader.RelationType.NESTE_PUNKT_KOMMUNE)
-                    return -1;
-                else if (this.type == GraphLoader.RelationType.NESTE_PUNKT_KOMMUNE
-                        && forhold.type == GraphLoader.RelationType.NESTE_PUNKT_FYLKE)
-                    return 1;
-                else
-                    return 0;
     }
 }
 class Koordinat implements Comparable<Koordinat> {
-    double lat, lon;
+    private double lat, lon;
     Node tilkobletNode;
 
     public Koordinat(double lat, double lon) {
@@ -195,35 +204,20 @@ class Koordinat implements Comparable<Koordinat> {
         tilkobletNode.setProperty("lat", lat);
         tilkobletNode.setProperty("lon", lon);
     }
-/*
-    @Override
-    public int hashCode() {
-        return Objects.hash(lat, lng);
-    }
 
     @Override
-    public boolean equals(Object o) {
-        if (o == this)
-            return true;
-        if (!(o instanceof Koordinat))
-            return false;
-        Koordinat k = (Koordinat)o;
-        return (lat == k.lat && lng == k.lng);
-    }
-*/
-    @Override
     public int compareTo(Koordinat k) {
-        double resultLat = lat - k.lat;
-        double resultLng = lon - k.lon;
+        int resultLat = Double.compare(lat, k.lat);
+        int resultLon = Double.compare(lon, k.lon);
 
         if (resultLat < 0)
             return -1;
         else if (resultLat > 0)
             return 1;
         else
-            if (resultLng < 0)
+            if (resultLon < 0)
                 return -1;
-            else if (resultLng > 0)
+            else if (resultLon > 0)
                 return 1;
             else
                 return 0;
