@@ -293,16 +293,12 @@ public class GraphLoader {
         Koordinat,
         Kommune,
         Fylke,
-        Land,
-        LineString,
-        FylkeGrense
+        Land
     }
 
     public enum RelationType implements RelationshipType {
         HAR_KOMMUNE,
         HAR_FYLKE,
-        HAR_FYLKEGRENSE,
-        HAR_LINESTRING,
         NESTE_PUNKT_FYLKE,
         NESTE_PUNKT_KOMMUNE,
         HAR_KOORDINAT

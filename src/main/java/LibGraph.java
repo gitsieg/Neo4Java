@@ -35,28 +35,6 @@ class LibGraph {
         void performTransaction(GraphDatabaseService graphdb) throws Exception;
     }
 
-    static void checkRelations(GraphDatabaseService graphdb) {
-        Result result = graphdb.execute("match(n:Koordinat)<--(f:Fylke {navn: \"Telemark\"}) return (n) ");
-        ResourceIterator<Node> it = result.columnAs("n");
-
-        int errorCounter = 0;
-        Node prev, cur;
-
-        if (it.hasNext()) {
-            cur = it.next();
-            System.out.println("Lat: "+cur.getProperty("lat").getClass());
-            while (it.hasNext()) {
-                prev = cur;
-                cur = it.next();
-                if ((double)cur.getProperty("lat") == (double)prev.getProperty("lat")
-                 && (double)cur.getProperty("lon") == (double)prev.getProperty("lon"))
-                    errorCounter++;
-            }
-        } else
-            System.out.println("What the actual fuck?");
-        System.out.println("Error count: "+errorCounter);
-    }
-
     static boolean addForholdToSet(Koordinat fra, Koordinat til,
                            GraphLoader.RelationType type, TreeSet<Forhold> forhold) {
         if (fra.tilkobletNode == til.tilkobletNode && fra != til)
@@ -70,85 +48,6 @@ class LibGraph {
             ));
     }
 
-    static void sjekkKoordinater(File fil) {
-
-        long start = System.currentTimeMillis();
-
-        JSONObject fylke = new JSONObject(LibJSON.readFile(fil).toString());
-
-        TreeSet<Koordinat> koordinater = new TreeSet<>();
-        int counter = 0, fylkegrenseTotal = 0, kommunegrenseTotal = 0;
-
-
-        JSONObject fylkesgrense = fylke.getJSONObject("administrative_enheter.fylkesgrense");
-        JSONObject kommuner = fylke.getJSONObject("administrative_enheter.kommunegrense");
-
-        JSONArray features;
-        JSONArray coordinates;
-        JSONArray coordinateContainer;
-        JSONArray coordinateSubContainer;
-
-        Koordinat koordinat;
-
-        features = fylkesgrense.getJSONArray("features");
-        for (int i = 0; i < features.length(); i++) {
-            coordinates = features
-                    .getJSONObject(i) // {} 0, 1, 2, 3, 4
-                    .getJSONObject("geometry") // {} geometry
-                    .getJSONArray("coordinates"); // [] coordinates
-
-            for (int j = 0; j < coordinates.length(); j++) {
-                coordinateContainer = coordinates.getJSONArray(j); // [] 0, 1, 2, 3, 4
-                koordinat = new Koordinat(
-                        coordinateContainer.getDouble(0),
-                        coordinateContainer.getDouble(1)
-                );
-                if (!koordinater.contains(koordinat)) {
-                    koordinater.add(koordinat);
-                    fylkegrenseTotal++;
-                }
-            }
-        }
-
-        features = kommuner.getJSONArray("features");
-        for (int i = 0; i < features.length(); i++) {
-            coordinates = features
-                    .getJSONObject(i)
-                    .getJSONObject("geometry")
-                    .getJSONArray("coordinates");
-            for (int j = 0; j < coordinates.length(); j++) {
-                coordinateContainer = coordinates.getJSONArray(j);
-                koordinat = new Koordinat(
-                        coordinateContainer.getDouble(0),
-                        coordinateContainer.getDouble(1)
-                );
-                if (!koordinater.contains(koordinat)) {
-                    koordinater.add(koordinat);
-                    kommunegrenseTotal++;
-                } else
-                    counter++;
-                /*
-                for (int k = 0; k < coordinateContainer.length(); k++) {
-                    coordinateSubContainer = coordinateContainer.getJSONArray(k);
-                    if (koordinater.contains(new Koordinat(
-                            coordinateSubContainer.getDouble(0),
-                            coordinateSubContainer.getDouble(1)))) {
-                        counter++;
-                    }
-                    kommunegrenseTotal++;
-                }
-                */
-            }
-        }
-
-        long stop = System.currentTimeMillis();
-        System.out.println("Time used: "+(stop-start));
-
-        System.out.println("Fylkegrense-koordinater: "+fylkegrenseTotal);
-        System.out.println("Kommunegrense-koordinater: "+kommunegrenseTotal);
-        System.out.println("Equal count: "+counter);
-
-    }
 }
 
 class Forhold implements Comparable<Forhold> {
