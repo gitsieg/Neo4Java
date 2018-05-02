@@ -13,19 +13,21 @@ import java.util.logging.Logger;
 
 @SuppressWarnings("Duplicates")
 public class GraphLoader {
-/* ------ Statiske variabler------ */
+    /* ------ Statiske variabler------ */
+    // Din filsti til database-mappen dersom du kjører Windows
     private static final String WIN_DATABASE_PATH = "C:\\Users\\AtleAmun\\AppData\\Roaming\\Neo4j Desktop\\Application\\neo4jDatabases\\database-4636402a-6111-427f-bbd9-dd6959fd5a6f\\installation-3.3.3\\data\\databases\\graph.db";
+    // Din filsti til database-mappen dersom du kjører Linux
+    private static final String LINUX_DATABASE_PATH = "/var/lib/neo4j/data/databases/administrative-enheter.db";
     private final static File DATABASE_DIRECTORY =
             (System.getProperty("os.name").startsWith("Windows")) ?
                     new File(WIN_DATABASE_PATH) :
-                    new File("/var/lib/neo4j/data/databases/administrative-enheter.db");
+                    new File(LINUX_DATABASE_PATH);
+
     private final static String RES_JSON = "./src/res/json/";
-
     private final static String DETACH_DELETE = "MATCH (n) DETACH DELETE n";
-
     private static final String NAVN = "navn", KODE = "kode";
 
-/* ------ Objekt-variabler ------ */
+    /* ------ Objekt-variabler ------ */
     final GraphDatabaseFactory dbFactory;
     final GraphDatabaseBuilder builder;
     final GraphDatabaseService graphdb;
@@ -57,7 +59,6 @@ public class GraphLoader {
      * todo- Eventuell feilhåndtering
      */
     public void registerDatasets() {
-
         LibGraph.graphTransaction(this.graphdb, txCmd -> {
                 graphdb.execute(DETACH_DELETE); // For å fjerne all eksisterende data
 
@@ -78,8 +79,6 @@ public class GraphLoader {
                 }
             });
 
-
-            // Gjennomløp fylkedata
         for (Node fylke : fylkeNoder) {
             LibGraph.graphTransaction(this.graphdb, txCmd -> {
                 final String isoKode = fylke.getProperty(KODE).toString();
@@ -93,6 +92,7 @@ public class GraphLoader {
 
                 // Hent JSON data
                 final JSONObject json_fylkeFil = new JSONObject(LibJSON.readFile(fylkeFil).toString());
+
                 final JSONObject json_fylke = json_fylkeFil .getJSONObject("administrative_enheter.fylkesgrense");
                 final JSONObject json_kommuner = json_fylkeFil .getJSONObject("administrative_enheter.kommune");
 
@@ -116,6 +116,7 @@ public class GraphLoader {
                         coordinateContainer.getDouble(0),
                         coordinateContainer.getDouble(1)
                 );
+
                 if (koordinater.add(koordinatFylkeStart)) {
                     koordinatFylkeStart.kobleNode( graphdb.createNode(NodeType.Koordinat) );
                     fylke.createRelationshipTo(koordinatFylkeStart.tilkobletNode, RelationType.HAR_KOORDINAT);
@@ -131,6 +132,7 @@ public class GraphLoader {
                 }
                 koordinatFylkeStart.tilkobletNode.setProperty("startFylke", fylke.getProperty(NAVN));
 
+
                 Koordinat koordinatFylkePrevious = koordinatFylkeStart;
                 for (int i = 0, j = 1; i < features.length(); i++, j = 0) {
                     coordinates = features
@@ -138,7 +140,7 @@ public class GraphLoader {
                             .getJSONObject("geometry") // {} geometry
                             .getJSONArray("coordinates"); // [] coordinates
 
-                    for ( ; j < coordinates.length(); j++) {
+                    for (; j < coordinates.length(); j++) {
                         coordinateContainer = coordinates.getJSONArray(j); // [] 0, 1, 2, 3, 4
 
                         Koordinat koordinatFylkeCurrent = new Koordinat(
@@ -188,6 +190,7 @@ public class GraphLoader {
                 System.out.println("Antall koordinater: "+koordinater.size());
                 System.out.println("Antall forhold: "+ (forholdFylke.size()+forholdKommune.size()) );
 
+
                 /* -------- Innlessing av kommunedata -------- */
                 features = json_kommuner.getJSONArray("features");
                 for (int i = 0; i < features.length(); i++) {
@@ -195,7 +198,7 @@ public class GraphLoader {
                     json_kommune = features.getJSONObject(i); // {} 0
 
                     Node kommune = graphdb.createNode(NodeType.Kommune);
-                    kommune.setProperty("navn",json_kommune
+                    kommune.setProperty("navn", json_kommune
                             .getJSONObject("properties")
                             .getJSONArray("navn")
                             .getJSONObject(0).getString("navn"));
@@ -289,6 +292,7 @@ public class GraphLoader {
             }
         });
     }
+
     public enum NodeType implements Label {
         Koordinat,
         Kommune,
